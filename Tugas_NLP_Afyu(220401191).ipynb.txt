@@ -1,0 +1,743 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "gpuType": "T4"
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    },
+    "accelerator": "GPU"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": [
+        "# Cek CPU & GPU"
+      ],
+      "metadata": {
+        "id": "loLAGEBb7yUZ"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# === CPU ringkas ===\n",
+        "!lscpu | egrep 'Model name|CPU\\(s\\)|Thread|Core|Socket' || echo \"lscpu tidak tersedia\"\n",
+        "\n",
+        "# === Cek GPU NVIDIA ===\n",
+        "import shutil, subprocess, sys\n",
+        "\n",
+        "def run(cmd):\n",
+        "    try:\n",
+        "        out = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, text=True)\n",
+        "        print(out)\n",
+        "    except subprocess.CalledProcessError as e:\n",
+        "        print(e.output)\n",
+        "\n",
+        "print(\"\\n=== nvidia-smi ===\")\n",
+        "if shutil.which(\"nvidia-smi\"):\n",
+        "    run(\"nvidia-smi\")\n",
+        "else:\n",
+        "    print(\"nvidia-smi tidak ditemukan (GPU belum aktif atau bukan NVIDIA).\")\n",
+        "\n",
+        "print(\"\\n=== Cek CUDA via PyTorch ===\")\n",
+        "try:\n",
+        "    import torch\n",
+        "    print(\"PyTorch:\", torch.__version__)\n",
+        "    print(\"CUDA build:\", torch.version.cuda)\n",
+        "    print(\"CUDA tersedia?:\", torch.cuda.is_available())\n",
+        "    if torch.cuda.is_available():\n",
+        "        print(\"GPU name:\", torch.cuda.get_device_name(0))\n",
+        "        print(\"Jumlah GPU:\", torch.cuda.device_count())\n",
+        "        a = torch.randn(1024, 1024, device=\"cuda\")\n",
+        "        b = torch.randn(1024, 1024, device=\"cuda\")\n",
+        "        %timeit (a@b).sum().item()\n",
+        "    else:\n",
+        "        print(\"GPU belum aktif untuk PyTorch.\")\n",
+        "except Exception as e:\n",
+        "    print(\"PyTorch belum ada atau error, memasang lalu cek ulang...\")\n",
+        "    !pip -q install torch --index-url https://download.pytorch.org/whl/cu124 >/dev/null 2>&1\n",
+        "    import torch\n",
+        "    print(\"PyTorch:\", torch.__version__)\n",
+        "    print(\"CUDA build:\", torch.version.cuda)\n",
+        "    print(\"CUDA tersedia?:\", torch.cuda.is_available())\n",
+        "    if torch.cuda.is_available():\n",
+        "        print(\"GPU name:\", torch.cuda.get_device_name(0))\n",
+        "        print(\"Jumlah GPU:\", torch.cuda.device_count())\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "epJyV1Q27xZy",
+        "outputId": "45538165-6095-4a9b-b2ac-6a971cf8df0a"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "'lscpu' is not recognized as an internal or external command,\n",
+            "operable program or batch file.\n"
+          ]
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\n",
+            "=== nvidia-smi ===\n",
+            "Tue Nov 11 19:58:41 2025       \n",
+            "+-----------------------------------------------------------------------------------------+\n",
+            "| NVIDIA-SMI 566.14                 Driver Version: 566.14         CUDA Version: 12.7     |\n",
+            "|-----------------------------------------+------------------------+----------------------+\n",
+            "| GPU  Name                  Driver-Model | Bus-Id          Disp.A | Volatile Uncorr. ECC |\n",
+            "| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |\n",
+            "|                                         |                        |               MIG M. |\n",
+            "|=========================================+========================+======================|\n",
+            "|   0  NVIDIA GeForce RTX 3050 ...  WDDM  |   00000000:01:00.0 Off |                  N/A |\n",
+            "| N/A   50C    P8              3W /   40W |     454MiB /   4096MiB |     18%      Default |\n",
+            "|                                         |                        |                  N/A |\n",
+            "+-----------------------------------------+------------------------+----------------------+\n",
+            "                                                                                         \n",
+            "+-----------------------------------------------------------------------------------------+\n",
+            "| Processes:                                                                              |\n",
+            "|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |\n",
+            "|        ID   ID                                                               Usage      |\n",
+            "|=========================================================================================|\n",
+            "|    0   N/A  N/A      6608    C+G   ...amapps\\common\\BongoCat\\BongoCat.exe      N/A      |\n",
+            "|    0   N/A  N/A     13116      C   C:\\Program Files\\Python312\\python.exe       N/A      |\n",
+            "+-----------------------------------------------------------------------------------------+\n",
+            "\n",
+            "\n",
+            "=== Cek CUDA via PyTorch ===\n",
+            "PyTorch: 2.6.0+cu124\n",
+            "CUDA build: 12.4\n",
+            "CUDA tersedia?: True\n",
+            "GPU name: NVIDIA GeForce RTX 3050 Laptop GPU\n",
+            "Jumlah GPU: 1\n",
+            "888 μs ± 101 μs per loop (mean ± std. dev. of 7 runs, 100 loops each)\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Kode itu dipakai untuk memeriksa apakah komputer atau runtime yang kamu pakai memiliki CPU dan GPU (terutama GPU NVIDIA) yang bisa digunakan untuk mempercepat komputasi dengan PyTorch.\n",
+        "\n",
+        "Bagian pertama, !lscpu ..., menjalankan perintah di sistem operasi untuk menampilkan informasi dasar CPU seperti nama prosesor, jumlah inti (core), dan thread. Ini memberi gambaran spesifikasi CPU yang sedang aktif.\n",
+        "\n",
+        "Selanjutnya kode mengimpor modul shutil dan subprocess, lalu membuat fungsi kecil bernama run() yang digunakan untuk menjalankan perintah terminal dari dalam Python. Dengan fungsi itu, program mencoba menjalankan perintah nvidia-smi, yaitu alat bawaan driver NVIDIA yang menampilkan informasi GPU seperti model, memori, dan status penggunaan. Kalau nvidia-smi tidak ditemukan, artinya GPU NVIDIA tidak aktif atau tidak ada di mesin tersebut.\n",
+        "\n",
+        "Setelah itu, kode beralih ke bagian pengecekan CUDA lewat PyTorch. Ia mencoba mengimpor library torch, lalu mencetak versi PyTorch, versi CUDA yang didukung, dan apakah CUDA tersedia di runtime. Kalau GPU benar-benar aktif, kode akan menampilkan nama GPU, jumlah GPU yang terdeteksi, dan menjalankan perkalian matriks acak di GPU untuk menguji performanya. Hasilnya diukur waktunya dengan %timeit untuk melihat seberapa cepat operasi itu dilakukan.\n",
+        "\n",
+        "Jika PyTorch belum terpasang atau terjadi error, blok except akan otomatis menginstal PyTorch (versi dengan dukungan CUDA 12.4), lalu memeriksa lagi apakah CUDA dan GPU sudah bisa digunakan.\n",
+        "\n",
+        "Jadi secara sederhana, seluruh kode ini berfungsi seperti “alat diagnostik” untuk memastikan apakah lingkungan Python kamu punya akses ke GPU NVIDIA dan bisa memanfaatkannya dengan PyTorch, serta memberikan sedikit uji performa untuk memastikan GPU benar-benar bekerja."
+      ],
+      "metadata": {
+        "id": "5fijzduDGScT"
+      }
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "iB-k-Ufa52WL",
+        "outputId": "56faa685-53fa-47b2-f903-5274c8de9604"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "WARNING: Ignoring invalid distribution ~ip (C:\\Users\\M-SI\\AppData\\Roaming\\Python\\Python312\\site-packages)\n",
+            "WARNING: Ignoring invalid distribution ~ip (C:\\Users\\M-SI\\AppData\\Roaming\\Python\\Python312\\site-packages)\n",
+            "WARNING: Ignoring invalid distribution ~ip (C:\\Users\\M-SI\\AppData\\Roaming\\Python\\Python312\\site-packages)\n",
+            "\n",
+            "[notice] A new release of pip is available: 25.2 -> 25.3\n",
+            "[notice] To update, run: python.exe -m pip install --upgrade pip\n"
+          ]
+        }
+      ],
+      "source": [
+        "# ============================================================\n",
+        "# 1. Install & Import Library\n",
+        "# ============================================================\n",
+        "# Biasanya scikit-learn & pandas sudah ada di Colab, ini hanya jaga-jaga:\n",
+        "!pip install -q scikit-learn pandas numpy\n",
+        "\n",
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "\n",
+        "from sklearn.model_selection import train_test_split, GridSearchCV\n",
+        "from sklearn.feature_extraction.text import TfidfVectorizer\n",
+        "from sklearn.pipeline import Pipeline\n",
+        "from sklearn.svm import LinearSVC\n",
+        "from sklearn.metrics import classification_report, confusion_matrix, accuracy_score\n",
+        "import seaborn as sns\n",
+        "import matplotlib.pyplot as plt\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Bagian kode ini berfungsi untuk menyiapkan seluruh library yang dibutuhkan sebelum melakukan proses machine learning berbasis teks — khususnya untuk kasus seperti klasifikasi spam vs ham (pesan biasa).\n",
+        "Penjelasannya begini:\n",
+        "Pertama, baris !pip install -q scikit-learn pandas numpy memastikan tiga library utama—scikit-learn, pandas, dan numpy—terpasang di lingkungan kerja. Di Google Colab sebenarnya ketiganya sudah ada secara default, tapi perintah ini dijalankan untuk berjaga-jaga jika kamu menggunakan environment lain atau local runtime yang belum memiliki paket tersebut. Tanda seru ! artinya perintah itu dijalankan di terminal, bukan di interpreter Python langsung, sedangkan opsi -q membuat proses instalasi berjalan “quiet mode” tanpa banyak output.\n",
+        "Setelah instalasi, baris berikutnya mengimpor semua modul penting.\n",
+        "\n",
+        "\n",
+        "pandas digunakan untuk membaca dan mengelola data dalam bentuk tabel (DataFrame). Biasanya dipakai untuk memuat dataset seperti spam.csv.\n",
+        "\n",
+        "\n",
+        "numpy digunakan untuk operasi numerik seperti array dan perhitungan matematis di belakang layar.\n",
+        "\n",
+        "\n",
+        "Kemudian, dari library scikit-learn, diimpor beberapa komponen penting:\n",
+        "\n",
+        "\n",
+        "train_test_split untuk membagi dataset menjadi data latih dan data uji.\n",
+        "\n",
+        "\n",
+        "GridSearchCV untuk mencari kombinasi parameter terbaik saat melakukan training model (biasanya saat tuning hyperparameter).\n",
+        "\n",
+        "\n",
+        "TfidfVectorizer untuk mengubah teks menjadi representasi numerik berbasis frekuensi kata menggunakan metode TF-IDF (Term Frequency–Inverse Document Frequency).\n",
+        "\n",
+        "\n",
+        "Pipeline digunakan agar seluruh proses (mulai dari vektorisasi teks hingga pemodelan) bisa dijalankan secara berurutan dalam satu objek praktis.\n",
+        "\n",
+        "\n",
+        "LinearSVC adalah model Support Vector Machine linear, yang umum digunakan untuk klasifikasi teks seperti deteksi spam.\n",
+        "\n",
+        "\n",
+        "classification_report, confusion_matrix, dan accuracy_score digunakan untuk mengevaluasi performa model: menampilkan metrik seperti presisi, recall, F1-score, dan akurasi.\n",
+        "\n",
+        "\n",
+        "Akhirnya, seaborn dan matplotlib.pyplot diimpor untuk visualisasi, misalnya membuat heatmap confusion matrix atau grafik hasil evaluasi model.\n",
+        "Singkatnya, blok kode ini adalah bagian “persiapan alat”: ia memastikan semua library tersedia dan diimpor agar kamu bisa melanjutkan ke tahap berikutnya, yaitu memuat data, melatih model, dan mengevaluasi hasil klasifikasi teks."
+      ],
+      "metadata": {
+        "id": "38VO15JNGipF"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import pandas as pd\n",
+        "\n",
+        "# ============================================================\n",
+        "# 2. Load Dataset (jika file di folder yang sama)\n",
+        "# ============================================================\n",
+        "df = pd.read_csv('spam (1).csv', encoding='latin-1')\n",
+        "\n",
+        "# Cek beberapa kolom teratas\n",
+        "print(df.head())\n",
+        "print(df.columns)\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "BapCK04R6AUc",
+        "outputId": "2cae1f86-4d66-4713-82bf-e6d7368c4588"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "     v1                                                 v2 Unnamed: 2  \\\n",
+            "0   ham  Go until jurong point, crazy.. Available only ...        NaN   \n",
+            "1   ham                      Ok lar... Joking wif u oni...        NaN   \n",
+            "2  spam  Free entry in 2 a wkly comp to win FA Cup fina...        NaN   \n",
+            "3   ham  U dun say so early hor... U c already then say...        NaN   \n",
+            "4   ham  Nah I don't think he goes to usf, he lives aro...        NaN   \n",
+            "\n",
+            "  Unnamed: 3 Unnamed: 4  \n",
+            "0        NaN        NaN  \n",
+            "1        NaN        NaN  \n",
+            "2        NaN        NaN  \n",
+            "3        NaN        NaN  \n",
+            "4        NaN        NaN  \n",
+            "Index(['v1', 'v2', 'Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4'], dtype='object')\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Kode yang kamu tulis ini digunakan untuk memuat dataset CSV ke dalam Python menggunakan library pandas, lalu menampilkan sebagian isi dan struktur datanya agar kamu tahu seperti apa bentuk data yang akan digunakan untuk analisis atau pelatihan model.\n",
+        "\n",
+        "Pertama, import pandas as pd berarti kamu memanggil library pandas dan memberi alias pd, supaya nanti pemanggilan fungsi dari pandas bisa lebih singkat. Pandas adalah library utama di Python untuk mengelola data dalam bentuk tabel (DataFrame), mirip seperti spreadsheet di Excel.\n",
+        "\n",
+        "Kemudian, bagian\n",
+        "\n",
+        "df = pd.read_csv('spam (1).csv', encoding='latin-1')\n",
+        "\n",
+        "\n",
+        "memuat file CSV bernama spam (1).csv yang berada di folder yang sama dengan file notebook. Fungsi pd.read_csv() membaca isi file dan menyimpannya dalam variabel df (DataFrame). Parameter encoding='latin-1' digunakan agar karakter-karakter khusus (seperti tanda aksen atau simbol non-ASCII) dapat dibaca dengan benar tanpa error — ini sering dipakai untuk dataset teks yang berasal dari berbagai sumber.\n",
+        "\n",
+        "Setelah data berhasil dimuat, dua baris berikut:\n",
+        "\n",
+        "print(df.head())\n",
+        "print(df.columns)\n",
+        "\n",
+        "\n",
+        "berfungsi untuk menampilkan isi dan struktur dasar dataset.\n",
+        "\n",
+        "df.head() menampilkan lima baris pertama agar kamu bisa melihat contoh isi data, misalnya kolom “label” dan “pesan”.\n",
+        "\n",
+        "df.columns menampilkan daftar nama kolom dalam dataset tersebut, sehingga kamu tahu kolom mana yang berisi teks dan kolom mana yang berisi label (spam atau ham).\n",
+        "\n",
+        "Singkatnya, bagian kode ini adalah tahap awal eksplorasi data, yang memastikan bahwa file sudah berhasil dimuat, formatnya benar, dan kolom-kolomnya sesuai sebelum kamu lanjut ke tahap pemrosesan teks atau pelatihan model machine learning."
+      ],
+      "metadata": {
+        "id": "VISp6Ft6GxEx"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ============================================================\n",
+        "# 3. Bersihkan Kolom (Sesuaikan dengan format spam.csv kamu)\n",
+        "# ============================================================\n",
+        "\n",
+        "# Versi Kaggle SMS Spam Collection biasanya:\n",
+        "# v1 = label, v2 = text, kolom lain kosong\n",
+        "if 'v1' in df.columns and 'v2' in df.columns:\n",
+        "    df = df[['v1', 'v2']].rename(columns={'v1': 'label', 'v2': 'text'})\n",
+        "else:\n",
+        "    # Kalau format beda, sesuaikan di sini:\n",
+        "    # Misal sudah ada 'label' dan 'text'\n",
+        "    df = df.rename(columns={df.columns[0]: 'label', df.columns[1]: 'text'})\n",
+        "\n",
+        "# Hapus baris kosong\n",
+        "df = df.dropna(subset=['text', 'label'])\n",
+        "\n",
+        "# Map label ke angka: ham=0, spam=1\n",
+        "df['label_num'] = df['label'].map({'ham': 0, 'spam': 1})\n",
+        "\n",
+        "print(df['label'].value_counts())\n",
+        "print(df.head())\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "jUZXNzRj6B0c",
+        "outputId": "a08e9cfb-863c-4e6f-eba0-bbbddc64f920"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "label\n",
+            "ham     4825\n",
+            "spam     747\n",
+            "Name: count, dtype: int64\n",
+            "  label                                               text  label_num\n",
+            "0   ham  Go until jurong point, crazy.. Available only ...          0\n",
+            "1   ham                      Ok lar... Joking wif u oni...          0\n",
+            "2  spam  Free entry in 2 a wkly comp to win FA Cup fina...          1\n",
+            "3   ham  U dun say so early hor... U c already then say...          0\n",
+            "4   ham  Nah I don't think he goes to usf, he lives aro...          0\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Kode ini bertugas untuk membersihkan dan menyiapkan struktur dataset agar bisa digunakan oleh model machine learning — terutama untuk kasus klasifikasi spam dan ham (pesan normal).\n",
+        "\n",
+        "Pertama, bagian komentar menjelaskan bahwa dataset spam.csv (seperti versi populer dari Kaggle) biasanya memiliki dua kolom utama bernama v1 dan v2, di mana v1 berisi label (“ham” atau “spam”) dan v2 berisi teks pesan.\n",
+        "\n",
+        "Baris ini:\n",
+        "\n",
+        "if 'v1' in df.columns and 'v2' in df.columns:\n",
+        "    df = df[['v1', 'v2']].rename(columns={'v1': 'label', 'v2': 'text'})\n",
+        "\n",
+        "\n",
+        "mengecek apakah kolom v1 dan v2 memang ada. Kalau iya, hanya dua kolom itu yang diambil, lalu nama kolom diubah menjadi label (untuk kategori) dan text (untuk isi pesan).\n",
+        "\n",
+        "Jika dataset kamu memakai nama kolom yang berbeda (misalnya sudah bernama label dan text), maka blok else berikut ini:\n",
+        "\n",
+        "df = df.rename(columns={df.columns[0]: 'label', df.columns[1]: 'text'})\n",
+        "\n",
+        "\n",
+        "akan menyesuaikannya dengan mengambil dua kolom pertama dan mengganti namanya supaya seragam. Ini membuat script tetap fleksibel untuk berbagai format file.\n",
+        "\n",
+        "Selanjutnya:\n",
+        "\n",
+        "df = df.dropna(subset=['text', 'label'])\n",
+        "\n",
+        "\n",
+        "digunakan untuk menghapus baris kosong — misalnya ada pesan atau label yang hilang (NaN), agar model tidak error saat training.\n",
+        "\n",
+        "Kemudian:\n",
+        "\n",
+        "df['label_num'] = df['label'].map({'ham': 0, 'spam': 1})\n",
+        "\n",
+        "\n",
+        "membuat kolom baru bernama label_num yang berisi representasi numerik dari label teks: ham diubah menjadi 0 dan spam menjadi 1. Model machine learning hanya bisa memproses angka, bukan string, jadi konversi ini wajib dilakukan sebelum pelatihan.\n",
+        "\n",
+        "Terakhir:\n",
+        "\n",
+        "print(df['label'].value_counts())\n",
+        "print(df.head())\n",
+        "\n",
+        "\n",
+        "menampilkan berapa banyak data ham dan spam yang ada, serta lima baris pertama dari dataset yang sudah dibersihkan. Ini memastikan bahwa data sudah dalam format yang benar — dua kolom (label, text) plus satu kolom tambahan (label_num) yang siap digunakan untuk pemrosesan teks selanjutnya.\n",
+        "\n",
+        "Singkatnya, bagian ini adalah tahap pra-pemrosesan (data cleaning dan label encoding) yang memastikan dataset rapi, konsisten, dan siap dipakai untuk pelatihan model deteksi spam."
+      ],
+      "metadata": {
+        "id": "1hcdfgVlHAcm"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ============================================================\n",
+        "# 4. Split Data Train & Test\n",
+        "# ============================================================\n",
+        "X = df['text']\n",
+        "y = df['label_num']\n",
+        "\n",
+        "X_train, X_test, y_train, y_test = train_test_split(\n",
+        "    X, y,\n",
+        "    test_size=0.2,\n",
+        "    random_state=42,\n",
+        "    stratify=y\n",
+        ")\n",
+        "\n",
+        "print(\"Jumlah data train:\", len(X_train))\n",
+        "print(\"Jumlah data test:\", len(X_test))\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "cifuB4b66DKu",
+        "outputId": "00e137c5-95d3-496b-a17e-a82751c684d2"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Jumlah data train: 4457\n",
+            "Jumlah data test: 1115\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Bagian kode ini berfungsi untuk memisahkan dataset menjadi dua bagian utama — data latihan (train) dan data pengujian (test) — agar model machine learning bisa dilatih dan diuji secara adil.\n",
+        "\n",
+        "Pertama, dua variabel utama didefinisikan:\n",
+        "\n",
+        "X = df['text']\n",
+        "y = df['label_num']\n",
+        "\n",
+        "\n",
+        "X menyimpan kumpulan pesan teks (fitur input), sedangkan y menyimpan label numerik (0 untuk ham, 1 untuk spam) yang menjadi target output saat model belajar.\n",
+        "\n",
+        "Lalu digunakan fungsi:\n",
+        "\n",
+        "train_test_split(\n",
+        "    X, y,\n",
+        "    test_size=0.2,\n",
+        "    random_state=42,\n",
+        "    stratify=y\n",
+        ")\n",
+        "\n",
+        "\n",
+        "dari library scikit-learn untuk membagi data tersebut menjadi dua set:\n",
+        "\n",
+        "X_train, y_train → data latih (sekitar 80%)\n",
+        "\n",
+        "X_test, y_test → data uji (sekitar 20%)\n",
+        "\n",
+        "Penjelasan parameternya:\n",
+        "\n",
+        "test_size=0.2 artinya 20% dari total data dipakai untuk pengujian, sisanya 80% untuk pelatihan.\n",
+        "\n",
+        "random_state=42 memastikan proses pembagian data dilakukan dengan urutan acak yang tetap konsisten setiap kali kode dijalankan, agar hasil eksperimen bisa direproduksi.\n",
+        "\n",
+        "stratify=y memastikan proporsi label spam dan ham di data latih dan data uji tetap seimbang (rasio kelas tidak berubah). Ini penting agar model tidak bias terhadap salah satu kelas.\n",
+        "\n",
+        "Akhirnya, dua baris:\n",
+        "\n",
+        "print(\"Jumlah data train:\", len(X_train))\n",
+        "print(\"Jumlah data test:\", len(X_test))\n",
+        "\n",
+        "\n",
+        "menampilkan berapa banyak sampel yang masuk ke masing-masing bagian.\n",
+        "\n",
+        "Singkatnya, blok ini adalah langkah pembagian data: ia menyiapkan data latih untuk mengajarkan model membedakan pesan spam dan ham, serta data uji untuk menilai kemampuan model pada pesan yang belum pernah dilihat sebelumnya."
+      ],
+      "metadata": {
+        "id": "_ncnlMK7Lxw6"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ============================================================\n",
+        "# 5. Buat Pipeline: TF-IDF + Linear SVM\n",
+        "# ============================================================\n",
+        "pipeline = Pipeline([\n",
+        "    ('tfidf', TfidfVectorizer(\n",
+        "        lowercase=True,\n",
+        "        stop_words='english'    # stopword removal\n",
+        "    )),\n",
+        "    ('clf', LinearSVC())\n",
+        "])\n",
+        "\n",
+        "# Latih baseline model (sebelum tuning)\n",
+        "pipeline.fit(X_train, y_train)\n",
+        "\n",
+        "y_pred_baseline = pipeline.predict(X_test)\n",
+        "print(\"Baseline Accuracy:\", accuracy_score(y_test, y_pred_baseline))\n",
+        "print(classification_report(y_test, y_pred_baseline, target_names=['ham', 'spam']))\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "B3lAVyRl6EOO",
+        "outputId": "389125cc-419f-4a07-ecf9-cefcaa36f670"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Baseline Accuracy: 0.9838565022421525\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "         ham       0.98      1.00      0.99       966\n",
+            "        spam       0.99      0.89      0.94       149\n",
+            "\n",
+            "    accuracy                           0.98      1115\n",
+            "   macro avg       0.99      0.94      0.96      1115\n",
+            "weighted avg       0.98      0.98      0.98      1115\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Kode itu membangun alur pemrosesan teks–>fitur–>model dalam satu paket praktis. Pipeline berisi dua tahap: pertama TfidfVectorizer mengubah tiap pesan (X_train) menjadi vektor numerik berbasis TF-IDF. Opsi lowercase=True membuat semua huruf jadi kecil agar konsisten, dan stop_words='english' membuang kata umum berbahasa Inggris (seperti “the”, “and”) yang biasanya tidak membantu klasifikasi. Kedua, hasil vektor TF-IDF masuk ke LinearSVC, yaitu Support Vector Machine linear yang cepat dan efektif untuk klasifikasi teks.\n",
+        "\n",
+        "pipeline.fit(X_train, y_train) melatih kedua tahap itu sekaligus: vektorisasi dipelajari dari data latih (kosakata & bobot) lalu model SVM menyesuaikan batas keputusan untuk memisahkan ham dan spam. Setelah dilatih, pipeline.predict(X_test) memproses data uji dengan pipa yang sama (pakai vocab/bobot TF-IDF dari train) dan memprediksi labelnya. Terakhir, accuracy_score menampilkan akurasi dasar (baseline) dan classification_report merinci presisi, recall, dan F1 untuk kelas ham dan spam, sehingga kamu tahu seberapa baik model awal sebelum tuning."
+      ],
+      "metadata": {
+        "id": "_O7cQnZXMeky"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ============================================================\n",
+        "# 6. Hyperparameter Tuning dengan GridSearchCV\n",
+        "# ============================================================\n",
+        "\n",
+        "param_grid = {\n",
+        "    'tfidf__ngram_range': [(1,1), (1,2)],   # unigram vs unigram+bigram\n",
+        "    'clf__C': [0.5, 1, 2]                   # regularization strength\n",
+        "}\n",
+        "\n",
+        "grid = GridSearchCV(\n",
+        "    estimator=pipeline,\n",
+        "    param_grid=param_grid,\n",
+        "    cv=5,\n",
+        "    scoring='accuracy',\n",
+        "    n_jobs=-1,\n",
+        "    verbose=1\n",
+        ")\n",
+        "\n",
+        "grid.fit(X_train, y_train)\n",
+        "\n",
+        "print(\"Best params:\", grid.best_params_)\n",
+        "print(\"Best CV accuracy:\", grid.best_score_)\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "jKfu4YT06E2O",
+        "outputId": "99752bef-cef0-494a-c978-fb25be2e6023"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Fitting 5 folds for each of 6 candidates, totalling 30 fits\n",
+            "Best params: {'clf__C': 2, 'tfidf__ngram_range': (1, 2)}\n",
+            "Best CV accuracy: 0.9854151882552481\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Pertama, variabel param_grid berisi daftar parameter yang ingin diuji. Pada tfidf__ngram_range, nilainya (1,1) berarti model hanya memakai kata tunggal (unigram), sedangkan (1,2) menambahkan pasangan kata (bigram) agar model bisa menangkap konteks dua kata sekaligus. Parameter clf__C mengatur kekuatan regularisasi model SVM; nilai kecil membuat model lebih sederhana dan menekan overfitting, sedangkan nilai besar memberi fleksibilitas lebih dalam menyesuaikan data.\n",
+        "\n",
+        "Objek GridSearchCV kemudian dibuat untuk mencoba semua kombinasi parameter yang ada di param_grid. Ia menggunakan cross-validation lima lipatan (cv=5), artinya data latih dibagi menjadi lima bagian dan model dilatih serta diuji bergantian di setiap bagian untuk menilai konsistensi performa. Argumen scoring='accuracy' menunjukkan bahwa metrik yang dinilai adalah akurasi rata-rata, n_jobs=-1 memerintahkan proses berjalan paralel di semua core CPU agar cepat, dan verbose=1 menampilkan progres pencarian di output.\n",
+        "\n",
+        "Saat grid.fit(X_train, y_train) dijalankan, sistem otomatis melatih model untuk setiap kombinasi parameter, mengevaluasinya dengan cross-validation, lalu memilih konfigurasi dengan akurasi terbaik. Dua baris terakhir mencetak hasilnya: grid.best_params_ menunjukkan kombinasi parameter paling optimal, dan grid.best_score_ menampilkan rata-rata akurasi terbaik yang diperoleh selama proses pencarian.\n",
+        "\n",
+        "Singkatnya, bagian ini adalah proses penyempurnaan model yang mencari pengaturan paling efektif bagi TF-IDF dan SVM agar klasifikasi spam berjalan seakurat mungkin."
+      ],
+      "metadata": {
+        "id": "T3DwUzr7M8mP"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ============================================================\n",
+        "# 7. Evaluasi Model Terbaik di Data Test\n",
+        "# ============================================================\n",
+        "best_model = grid.best_estimator_\n",
+        "\n",
+        "y_pred = best_model.predict(X_test)\n",
+        "\n",
+        "print(\"Test Accuracy (Best Model):\", accuracy_score(y_test, y_pred))\n",
+        "print(\"\\nClassification Report:\")\n",
+        "print(classification_report(y_test, y_pred, target_names=['ham', 'spam']))\n",
+        "\n",
+        "# Confusion Matrix\n",
+        "cm = confusion_matrix(y_test, y_pred)\n",
+        "\n",
+        "plt.figure(figsize=(4,3))\n",
+        "sns.heatmap(cm, annot=True, fmt='d', xticklabels=['Pred Ham','Pred Spam'],\n",
+        "            yticklabels=['True Ham','True Spam'])\n",
+        "plt.title('Confusion Matrix')\n",
+        "plt.xlabel('Predicted')\n",
+        "plt.ylabel('True')\n",
+        "plt.show()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 541
+        },
+        "id": "aorhe20n6Hk_",
+        "outputId": "1f220b28-2f4e-4c91-9a3c-a7a05e0cefc4"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Test Accuracy (Best Model): 0.9865470852017937\n",
+            "\n",
+            "Classification Report:\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "         ham       0.99      1.00      0.99       966\n",
+            "        spam       0.99      0.91      0.95       149\n",
+            "\n",
+            "    accuracy                           0.99      1115\n",
+            "   macro avg       0.99      0.95      0.97      1115\n",
+            "weighted avg       0.99      0.99      0.99      1115\n",
+            "\n"
+          ]
+        },
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<Figure size 400x300 with 2 Axes>"
+            ],
+            "image/png": "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"
+          },
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Bagian kode ini digunakan untuk mengevaluasi performa akhir model terbaik yang sudah diperoleh dari proses GridSearchCV sebelumnya, tetapi sekarang diuji menggunakan data test—yakni data yang tidak pernah dilihat oleh model selama pelatihan.\n",
+        "\n",
+        "Pertama, best_model = grid.best_estimator_ mengambil model terbaik yang ditemukan oleh GridSearch (dengan kombinasi parameter optimal). Model ini kemudian digunakan untuk membuat prediksi pada data uji melalui best_model.predict(X_test), yang menghasilkan label prediksi (y_pred) untuk setiap pesan di data test.\n",
+        "\n",
+        "Selanjutnya, akurasi model dihitung dengan accuracy_score(y_test, y_pred), yang menunjukkan seberapa besar persentase prediksi model yang benar dibandingkan total data uji. Lalu classification_report(y_test, y_pred, target_names=['ham', 'spam']) menampilkan rincian metrik evaluasi lain seperti precision, recall, dan F1-score untuk masing-masing kelas “ham” dan “spam”. Ini membantu menilai apakah model hanya bagus di satu kelas atau seimbang di keduanya.\n",
+        "\n",
+        "Setelah itu dibuat confusion matrix menggunakan confusion_matrix(y_test, y_pred). Matriks ini memperlihatkan berapa banyak data yang diprediksi benar atau salah untuk tiap kelas—misalnya berapa pesan spam yang salah diklasifikasikan sebagai ham, dan sebaliknya. Matriks tersebut divisualisasikan dalam bentuk heatmap menggunakan seaborn agar lebih mudah dibaca."
+      ],
+      "metadata": {
+        "id": "_5LljsWzOFFy"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# ============================================================\n",
+        "# 8. Contoh Prediksi Manual\n",
+        "# ============================================================\n",
+        "contoh_sms = [\n",
+        "    \"Congratulations! You have won a free ticket. Call now!\",\n",
+        "    \"Bro nanti malam jadi ngumpul di kampus?\",\n",
+        "    \"URGENT! You have won 1000$ cash. Claim now by sending your bank details.\"\n",
+        "]\n",
+        "\n",
+        "pred = best_model.predict(contoh_sms)\n",
+        "\n",
+        "for text, label in zip(contoh_sms, pred):\n",
+        "    print(f\"[{'SPAM' if label==1 else 'HAM'}] {text}\")\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "CvmQlB6-6JBO",
+        "outputId": "521dc0e3-2b02-4784-eb65-4bd908f127b8"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "[SPAM] Congratulations! You have won a free ticket. Call now!\n",
+            "[HAM] Bro nanti malam jadi ngumpul di kampus?\n",
+            "[SPAM] URGENT! You have won 1000$ cash. Claim now by sending your bank details.\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
